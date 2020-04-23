@@ -1,6 +1,7 @@
 #!/usr/bin/env python
+import argparse, sys, select
+from pathlib import Path
 
-import argparse, os
 parser = argparse.ArgumentParser(description='Overwrite one or more glyphs in a font using presupplied SVG files\n\nBy default, reads a list of filenames from stdin in the format\n"CODEPOINT.svg", where CODEPOINT is the 4-digit unicode\nrepresentation of the desired codepoint.\nSutable input can be generated using FIND(1)', formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument('file', type=argparse.FileType('r'), help='Input font file to be modified')
 parser.add_argument('-f', '--force', action='store_true', help='Overwrite without confirmation')
@@ -10,29 +11,42 @@ parser.add_argument('-p', '--pair', nargs=2, type=str, action='append', help='A 
 
 args = parser.parse_args()
 
+if not isinstance(args.pair, list): # might read from stdin, so we'll want this
+    args.pair = []
+    
+# grab from stin if a pipe
+if select.select([sys.stdin,],[],[],0.0)[0]:
+    for line in sys.stdin:
+        line = line.rstrip('\n')
+        args.pair.append([Path(line).stem, line])
+    
+# Check if pairs are provided
+if len(args.pair)==0:
+    parser.print_usage()
+    print(Path(__file__).stem + ": error: input error: no file-codepoint pairs provided")
+    parser.exit()
+
 # This is just type checking on arguements that argparse can't do automatically
-if isinstance(args.pair, list) > 0:
-    for pair in args.pair:
-        try:
-            paircheck = pair[0][2:] if pair[0].startswith("U+") else pair[0][1:] if pair[0].startswith("u") else pair[0]
-            int(paircheck, 16)
-            if len(paircheck) != 4:
-                raise ValueError
-        except ValueError:
-            parser.print_usage()
-            print(os.path.basename(__file__) + ": error: arguement hex: '" + pair[0] + "' not a valid hexidecimal number or unicode code point")
-            parser.exit()
-            if pair[0].startswith("U+"):
-                pair[0] = pair[0][2:] # can't do this earlier because error message
-                if pair[0].startswith("u"):
-                    pair[0] = pair[0][1:]
-                    try:
-                        argparse.FileType('r')(pair[1])
-                    except argparse.ArgumentTypeError as e:
-                        parser.print_usage()
-                        print(os.path.basename(__file__) + ": error: arguement file: "+str(e))
-                        parser.exit()
-        
+for pair in args.pair:
+    try:
+        paircheck = pair[0][2:] if pair[0].startswith("U+") else pair[0][1:] if pair[0].startswith("u") else pair[0]
+        int(paircheck, 16)
+        if len(paircheck) != 4:
+            raise ValueError
+    except ValueError:
+        parser.print_usage()
+        print(Path(__file__).stem + ": error: arguement hex: '" + pair[0] + "' not a valid hexidecimal number or unicode code point")
+        parser.exit()
+    if pair[0].startswith("U+"):
+        pair[0] = pair[0][2:] # can't do this earlier because error message
+    if pair[0].startswith("u"):
+        pair[0] = pair[0][1:]
+    try:
+        argparse.FileType('r')(pair[1])
+    except argparse.ArgumentTypeError as e:
+        parser.print_usage()
+        print(Path(__file__).stem + ": error: arguement file: "+str(e))
+        parser.exit()
 
 exit()
 

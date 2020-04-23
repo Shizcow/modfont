@@ -60,4 +60,7 @@ for pair in args.pair:
 
 font.generate(args.output)
 
-print('Successfully wrote font to "' + args.output + '"')
+if not args.dry_run:
+    print('Successfully wrote font to "' + args.output + '"')
+else:
+    print('Font generated successfully. Stopping due to --dry-run')

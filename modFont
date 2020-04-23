@@ -6,7 +6,7 @@ parser = argparse.ArgumentParser(description='Overwrite one or more glyphs in a 
 parser.add_argument('file', type=argparse.FileType('r'), help='Input font file to be modified')
 parser.add_argument('-f', '--force', action='store_true', help='Overwrite without confirmation')
 parser.add_argument('--dry-run', action='store_true', help='Stop just short of writing file / outputting contents')
-parser.add_argument('-o', '--output', help='File to write .ttf file to. If not speified, uses stdout')
+parser.add_argument('-o', '--output', required=True, help='File to write .ttf file to')
 parser.add_argument('-p', '--pair', nargs=2, type=str, action='append', help='A codepoint-filename pair in the format "--pair 1234 glyph.svg"\nIf specified, will not read from stdin (as is default)\nSupported codepoint formats include "1234", "u1234" and "U+1234"')
 
 args = parser.parse_args()
@@ -48,12 +48,16 @@ for pair in args.pair:
         print(Path(__file__).stem + ": error: arguement file: "+str(e))
         parser.exit()
 
-exit()
+#Ok, time to actually do the font stuff
 
 import fontforge
-font=fontforge.open("backup-orig.ttf")
 
-glyph = font.createMappedChar(int('0071', 16))
-glyph.importOutlines("ethernet-solid.svg")
+font=fontforge.open(args.file.name, 16)
 
-font.generate("NewFont.ttf")
+for pair in args.pair:
+    glyph = font.createMappedChar(int(pair[0], 16))
+    glyph.importOutlines(pair[1])
+
+font.generate(args.output)
+
+print('Successfully wrote font to "' + args.output + '"')

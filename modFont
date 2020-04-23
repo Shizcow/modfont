@@ -50,7 +50,7 @@ for pair in args.pair:
 
 #Ok, time to actually do the font stuff
 
-import fontforge
+import fontforge, os
 
 font=fontforge.open(args.file.name, 16)
 
@@ -61,6 +61,21 @@ for pair in args.pair:
 font.generate(args.output)
 
 if not args.dry_run:
+    if not args.force and os.path.exists(args.output):
+        print("Output file " + args.output + " exists")
+        print("Continue anyway? (use --force to disable this message)")
+        yes = {'yes','y', 'ye', '', 'Y'}
+        no = {'no','n', 'N'}
+
+        choice = '-'
+        while True:
+            choice = input("[yes/no] ").lower()
+            if choice in no:
+                exit()
+            elif choice in yes:
+                break
+            else:
+                print("Please respond with 'yes' or 'no'")
     print('Successfully wrote font to "' + args.output + '"')
 else:
     print('Font generated successfully. Stopping due to --dry-run')
